@@ -109,8 +109,21 @@ class CasaOSAppDialog {
     }
   }
 
-  close(force) {
-    if (!force && this.dirty && !confirm("Hay cambios sin guardar. ¿Cerrar igualmente?")) return;
+  // A yes/no question in the popup's footer (the browser's confirm() shows at the top of the page instead).
+  ask(text, yes) {
+    const foot = this.root.querySelector(".foot");
+    if (!foot) return Promise.resolve(true);
+    const before = foot.innerHTML;
+    return new Promise((done) => {
+      foot.innerHTML = `<div class="status ask">${esc(text)}</div><button class="no">Cancelar</button><button class="save yes">${esc(yes)}</button>`;
+      const end = (v) => { foot.innerHTML = before; const b = foot.querySelector(".save"); if (b) b.onclick = () => this.save(); done(v); };
+      foot.querySelector(".no").onclick = () => end(false);
+      foot.querySelector(".yes").onclick = () => end(true);
+    });
+  }
+
+  async close(force) {
+    if (!force && this.dirty && !(await this.ask("Hay cambios sin guardar. ¿Cerrar igualmente?", "Cerrar sin guardar"))) return;
     document.removeEventListener("keydown", this.onKey);
     this.host.remove();
   }
@@ -198,7 +211,7 @@ class CasaOSAppDialog {
   }
 
   async save() {
-    if (!confirm(`¿Guardar y aplicar los cambios? ${this.titleText} se va a recrear (unos segundos sin servicio).`)) return;
+    if (!(await this.ask(`${this.titleText} se va a recrear con los cambios (unos segundos sin servicio).`, "Guardar y aplicar"))) return;
     const btn = this.root.querySelector(".save");
     btn.disabled = true;
     this.status("Comprobando y aplicando…");
@@ -385,6 +398,8 @@ const CSS = `
   .status.bad, .err { color: var(--error-color, #db4437); }
   .save { border: 0; background: var(--primary-color, #03a9f4); color: var(--text-primary-color, #fff); padding: 7px 18px; border-radius: 8px; cursor: pointer; font: inherit; font-weight: 500; }
   .save:disabled { opacity: .5; cursor: default; }
+  .no { border: 1px solid var(--divider-color, #3a3a3a); background: none; color: var(--primary-text-color, #e1e1e1); padding: 6px 14px; border-radius: 8px; cursor: pointer; font: inherit; }
+  .status.ask { color: var(--primary-text-color, #e1e1e1); font-size: 13px; }
   .msg, .err { padding: 18px 4px; }
 `;
 
