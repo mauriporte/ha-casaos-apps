@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "CasaOS / ZimaOS server",
+        "description": "The same login you use in its web interface.",
+        "data": {"name": "Name (as used in dashboards, e.g. NAS)", "host": "Host (IP address)", "username": "Username", "password": "Password"}
+      }
+    },
+    "error": {"invalid_auth": "Wrong username or password", "cannot_connect": "Can't reach the CasaOS / ZimaOS app API"},
+    "abort": {"already_configured": "This server is already added"}
+  }
+}
