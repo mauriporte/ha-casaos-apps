@@ -19,6 +19,7 @@ buttons. On a computer the ⋯ appears when you hover a tile; on touch screens i
    to HACS as a custom integration) and restart Home Assistant.
 2. **Settings → Devices & services → Add integration → CasaOS / ZimaOS apps**, once per server: a name (used in
    dashboards, e.g. `NAS`), its IP address, and the same username and password as its web interface.
+   If that password changes later, Home Assistant asks for the new one under **Settings → Devices & services**.
 3. **Settings → Dashboards → ⋮ → Resources → Add resource**: `/casaos_apps/casaos-app-menu.js`, type *JavaScript module*.
 
 ## Use it on a tile

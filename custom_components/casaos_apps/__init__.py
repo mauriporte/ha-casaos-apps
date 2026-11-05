@@ -18,12 +18,13 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from urllib.parse import urlparse
 
-from .api import CasaOSClient, CasaOSError, PortainerClient, find_app
+from .api import AuthError, CasaOSClient, CasaOSError, PortainerClient, find_app
 
 DOMAIN = "casaos_apps"
 CARD_URL = "/casaos_apps/casaos-app-menu.js"
@@ -43,6 +44,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client = CasaOSClient(async_get_clientsession(hass), entry.data[CONF_HOST], entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
+    try:
+        await client.login()
+    except AuthError as err:  # password changed on the server: HA asks for the new one (reauth flow)
+        raise ConfigEntryAuthFailed(str(err)) from err
+    except (CasaOSError, aiohttp.ClientError, TimeoutError) as err:
+        raise ConfigEntryNotReady(str(err)) from err
     hass.data[DOMAIN][entry.entry_id] = {"client": client, "entry": entry, "apps": None, "at": 0.0}
     return True
 
@@ -58,6 +65,12 @@ def _server(hass: HomeAssistant, name: str) -> dict:
         if name.lower() in (srv["entry"].title.lower(), srv["entry"].data[CONF_HOST]):
             return srv
     raise CasaOSError(f"no CasaOS server called {name!r}")
+
+
+def _reauth_if_needed(hass: HomeAssistant, srv: dict | None, err: Exception) -> None:
+    """The saved login stopped working while HA runs: start the reauth flow (HA shows it once in Settings)."""
+    if srv and isinstance(err, AuthError):
+        srv["entry"].async_start_reauth(hass)
 
 
 async def _apps(srv: dict, fresh: bool = False) -> dict:
@@ -77,6 +90,7 @@ async def ws_servers(hass, connection, msg):
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_app(hass, connection, msg):
+    srv = None
     try:
         srv = _server(hass, msg["server"])
         app_id = find_app(await _apps(srv), msg["container"]) or find_app(await _apps(srv, fresh=True), msg["container"])
@@ -92,6 +106,7 @@ async def ws_app(hass, connection, msg):
             result = {"app_id": None, "host": host, "compose": compose, "readonly": True,
                       "yaml": yaml.safe_dump(compose, sort_keys=False, allow_unicode=True)}
     except (CasaOSError, aiohttp.ClientError, TimeoutError) as err:
+        _reauth_if_needed(hass, srv, err)
         connection.send_error(msg["id"], "casaos_error", str(err))
         return
     connection.send_result(msg["id"], result)
@@ -131,6 +146,7 @@ async def ws_convert(hass, connection, msg):
 @websocket_api.async_response
 async def ws_save(hass, connection, msg):
     """Validate (dry run) and then apply; CasaOS recreates the app's containers."""
+    srv = None
     try:
         text = msg.get("yaml")
         if text is None:
@@ -145,6 +161,7 @@ async def ws_save(hass, connection, msg):
         connection.send_error(msg["id"], "invalid_yaml", str(err))
         return
     except CasaOSError as err:
+        _reauth_if_needed(hass, srv, err)
         connection.send_error(msg["id"], "casaos_error", str(err))
         return
     connection.send_result(msg["id"], {"ok": True})

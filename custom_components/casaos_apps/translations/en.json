@@ -4,10 +4,29 @@
       "user": {
         "title": "CasaOS / ZimaOS server",
         "description": "The same login you use in its web interface.",
-        "data": {"name": "Name (as used in dashboards, e.g. NAS)", "host": "Host (IP address)", "username": "Username", "password": "Password"}
+        "data": {
+          "name": "Name (as used in dashboards, e.g. NAS)",
+          "host": "Host (IP address)",
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "CasaOS / ZimaOS login changed",
+        "description": "The server at {host} rejected the saved login. Enter the current username and password.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
       }
     },
-    "error": {"invalid_auth": "Wrong username or password", "cannot_connect": "Can't reach the CasaOS / ZimaOS app API"},
-    "abort": {"already_configured": "This server is already added"}
+    "error": {
+      "invalid_auth": "Wrong username or password",
+      "cannot_connect": "Can't reach the CasaOS / ZimaOS app API"
+    },
+    "abort": {
+      "already_configured": "This server is already added",
+      "reauth_successful": "The new login works; the integration has been reloaded."
+    }
   }
 }
