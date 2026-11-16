@@ -15,7 +15,7 @@ buttons. On a computer the ⋯ appears when you hover a tile; on touch screens i
 ## Install
 
 1. **HACS (recommended):** in HACS, search for **CasaOS / ZimaOS apps**, download it and restart Home Assistant.
-   Until it is listed in HACS, add `https://github.com/mauriporte/ha-casaos-apps` as a custom repository (type **Integration**) first.
+   If it doesn't show up in the search, add `https://github.com/mauriporte/ha-casaos-apps` as a custom repository (type **Integration**) and download it from there.
    **Manual:** copy `custom_components/casaos_apps` into your Home Assistant `config/custom_components/` and restart.
 2. **Settings → Devices & services → Add integration → CasaOS / ZimaOS apps**, once per server: a name (used in
    dashboards, e.g. `NAS`), its IP address, and the same username and password as its web interface.
