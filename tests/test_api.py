@@ -50,20 +50,3 @@ def test_expired_token_logs_in_again_once():
     client = api.CasaOSClient(s, "192.0.2.1", "u", "p")
     assert asyncio.run(client.apps()) == {}
     assert s.logins == 2 and s.auth == ["t1", "t2"]
-
-
-def test_compose_from_docker_run_container():
-    info = {
-        "Name": "/stremio-web",
-        "Config": {"Image": "stremio/web:latest", "Env": ["PATH=/usr/bin", "TOKEN=x"], "Cmd": ["serve"]},
-        "HostConfig": {"RestartPolicy": {"Name": "unless-stopped"}, "NetworkMode": "default",
-                       "PortBindings": {"8080/tcp": [{"HostPort": "8082"}]}, "Memory": 0,
-                       "Devices": [{"PathOnHost": "/dev/dri", "PathInContainer": "/dev/dri"}]},
-        "Mounts": [{"Type": "bind", "Source": "/data/x", "Destination": "/x", "RW": False}],
-    }
-    image = {"Config": {"Env": ["PATH=/usr/bin"], "Cmd": ["serve"]}}
-    svc = api.compose_from_inspect(info, image)["services"]["stremio-web"]
-    assert svc == {"container_name": "stremio-web", "image": "stremio/web:latest", "restart": "unless-stopped", "network_mode": "bridge",
-                   "ports": [{"target": 8080, "published": "8082", "protocol": "tcp"}],
-                   "volumes": [{"type": "bind", "source": "/data/x", "target": "/x", "read_only": True}],
-                   "environment": {"TOKEN": "x"}, "devices": ["/dev/dri:/dev/dri"]}  # image defaults (PATH, Cmd) left out

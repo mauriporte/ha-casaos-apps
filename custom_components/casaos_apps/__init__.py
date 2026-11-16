@@ -22,9 +22,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from urllib.parse import urlparse
-
-from .api import AuthError, CasaOSClient, CasaOSError, PortainerClient, find_app
+from .api import AuthError, CasaOSClient, CasaOSError, find_app
 
 DOMAIN = "casaos_apps"
 CARD_URL = "/casaos_apps/casaos-app-menu.js"
@@ -95,16 +93,10 @@ async def ws_app(hass, connection, msg):
         srv = _server(hass, msg["server"])
         app_id = find_app(await _apps(srv), msg["container"]) or find_app(await _apps(srv, fresh=True), msg["container"])
         host = srv["entry"].data[CONF_HOST]
-        if app_id:
-            text = await srv["client"].compose_yaml(app_id)
-            result = {"app_id": app_id, "host": host, "yaml": text, "compose": yaml.safe_load(text), "readonly": False}
-        else:  # made with `docker run`: CasaOS can't edit it; show its settings read-only through HA's Portainer integration
-            portainer = next((e for e in hass.config_entries.async_entries("portainer") if urlparse(e.data.get("url", "")).hostname == host), None)
-            if not portainer:
-                raise CasaOSError(f"{msg['container']} is not a CasaOS app on {srv['entry'].title}, and there's no Portainer integration for {host}")
-            compose = await PortainerClient(async_get_clientsession(hass, verify_ssl=False), portainer.data["url"], portainer.data["api_token"]).compose(msg["container"])
-            result = {"app_id": None, "host": host, "compose": compose, "readonly": True,
-                      "yaml": yaml.safe_dump(compose, sort_keys=False, allow_unicode=True)}
+        if not app_id:  # made with `docker run`: CasaOS can't show or edit it
+            raise CasaOSError(f"{msg['container']} is not a CasaOS app on {srv['entry'].title}")
+        text = await srv["client"].compose_yaml(app_id)
+        result = {"app_id": app_id, "host": host, "yaml": text, "compose": yaml.safe_load(text)}
     except (CasaOSError, aiohttp.ClientError, TimeoutError) as err:
         _reauth_if_needed(hass, srv, err)
         connection.send_error(msg["id"], "casaos_error", str(err))

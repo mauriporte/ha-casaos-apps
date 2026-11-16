@@ -7,8 +7,7 @@ ports, folders, variables, and under *Advanced* devices, CPU, memory, privileged
 change with CasaOS first and then applies it, which recreates the app's containers, exactly like pressing Save in
 CasaOS / ZimaOS.
 
-Containers that CasaOS doesn't manage (made with `docker run`) open read-only, with their settings read through
-Home Assistant's **Portainer** integration, when it's set up for that server.
+Containers that CasaOS doesn't manage (made with `docker run`) can't be opened: the popup says so.
 
 The popup follows your Home Assistant theme, and has *copy YAML*, *fullscreen* and *open in CasaOS / ZimaOS*
 buttons. On a computer the ⋯ appears when you hover a tile; on touch screens it's always shown.

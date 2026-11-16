@@ -100,7 +100,7 @@ class CasaOSAppDialog {
     this.frame(`<div class="msg">Cargando…</div>`);
     try {
       const r = await this.ws({ type: "casaos_apps/app", server: this.cfg.server, container: this.cfg.container });
-      Object.assign(this, { appId: r.app_id, srvHost: r.host, compose: r.compose, yaml: r.yaml, readonly: r.readonly });
+      Object.assign(this, { appId: r.app_id, srvHost: r.host, compose: r.compose, yaml: r.yaml });
       const x = this.compose["x-casaos"] || {};
       this.svcName = x.main && this.compose.services?.[x.main] ? x.main : Object.keys(this.compose.services || {})[0];
       this.render();
@@ -146,14 +146,14 @@ class CasaOSAppDialog {
       <div class="panel${this.full ? " full" : ""}" role="dialog" aria-label="Configuración">
         <div class="head">
           ${icon ? `<img src="${esc(icon)}" alt="">` : ""}
-          <div class="ttl">${esc(this.compose ? `${this.readonly ? "Ver" : "Editar"} ${this.titleText}` : this.cfg.container)}</div>
+          <div class="ttl">${esc(this.compose ? `Editar ${this.titleText}` : this.cfg.container)}</div>
           ${this.compose ? `<div class="tabs"><button data-tab="form" class="${this.tab === "form" ? "on" : ""}">Form</button><button data-tab="yaml" class="${this.tab === "yaml" ? "on" : ""}">YAML</button></div>` : ""}
           ${this.compose ? `<button class="ico copy" title="Copiar YAML">⧉</button><button class="ico full" title="Pantalla completa">${this.full ? "🗗" : "⛶"}</button>` : ""}
           ${this.srvHost ? `<a class="ico" href="http://${esc(this.srvHost)}/" target="_blank" rel="noopener" title="Abrir en ZimaOS / CasaOS">↗</a>` : ""}
           <button class="ico close" title="Cerrar">✕</button>
         </div>
         <div class="body">${body}</div>
-        ${this.compose ? `<div class="foot"><div class="status">${this.readonly ? "Creado con «docker run», no lo gestiona ZimaOS / CasaOS: solo lectura (datos de Portainer)." : ""}</div>${this.readonly ? "" : `<button class="save">Guardar</button>`}</div>` : ""}
+        ${this.compose ? `<div class="foot"><div class="status"></div><button class="save">Guardar</button></div>` : ""}
       </div>`;
     this.root.querySelector(".overlay").onclick = () => this.close();
     this.root.querySelector(".close").onclick = () => this.close();
@@ -231,7 +231,6 @@ class CasaOSAppDialog {
     if (this.tab === "yaml") {
       this.frame(`<textarea spellcheck="false">${esc(this.yaml)}</textarea>`);
       this.root.querySelector("textarea").oninput = () => (this.dirty = true);
-      this.lock();
       return;
     }
     const s = this.svc, x = this.x;
@@ -275,17 +274,6 @@ class CasaOSAppDialog {
           ${row("Comando", `<input data-k="command" value="${esc(Array.isArray(s.command) ? (s.command.length ? JSON.stringify(s.command) : "") : s.command)}">`)}
         </div>` : ""}`);
     this.bind(P, M, E, D);
-    this.lock();
-  }
-
-  lock() {
-    if (!this.readonly) return;
-    this.root.querySelectorAll(".body input, .body select, textarea").forEach((el) => {
-      if (el.classList.contains("advsw")) return;  // the Advanced switch still shows/hides
-      el.tagName === "TEXTAREA" || el.type === "text" || el.type === "number" || !el.type ? (el.readOnly = true) : (el.disabled = true);
-      if (el.tagName === "SELECT") el.disabled = true;
-    });
-    this.root.querySelectorAll(".add, .del").forEach((b) => (b.style.display = "none"));
   }
 
   table(title, key, cols, rows, cells) {
